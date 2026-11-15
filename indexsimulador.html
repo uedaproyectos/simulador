@@ -1,0 +1,2014 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Simulador Apache NetBeans 8.2 – Diseño y Programación Java Swing</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Estilos clásicos inspirados en Apache NetBeans 8.2 & Java Swing LookAndFeel */
+        body {
+            background-color: #D6D9DF;
+            user-select: none;
+            overflow-x: hidden;
+        }
+        .nb-toolbar {
+            background: linear-gradient(180deg, #F4F6F9 0%, #E1E5EC 100%);
+            border-bottom: 1px solid #9BA3B0;
+        }
+        .nb-panel {
+            background-color: #ECEEF2;
+            border: 1px solid #9BA3B0;
+        }
+        .nb-panel-header {
+            background: linear-gradient(180deg, #E2E8F0 0%, #CBD5E1 100%);
+            border-bottom: 1px solid #9BA3B0;
+            font-size: 12px;
+            font-weight: 700;
+            color: #1E293B;
+            padding: 5px 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        /* Lienzo de diseño JFrame con cuadrícula estilo NetBeans Matisse */
+        #design-canvas {
+            background-color: #F3F4F6;
+            background-image: 
+                linear-gradient(to right, rgba(148, 163, 184, 0.22) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(148, 163, 184, 0.22) 1px, transparent 1px);
+            background-size: 16px 16px;
+            position: relative;
+            overflow: hidden;
+            touch-action: none;
+        }
+        /* Componentes dentro del diseñador */
+        .swing-design-item {
+            position: absolute;
+            cursor: move;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            transition: box-shadow 0.1s;
+        }
+        .swing-design-item.selected {
+            outline: 2px solid #2563EB;
+            outline-offset: 1px;
+            z-index: 20;
+        }
+        /* Manejador de redimensionamiento en la esquina inferior derecha */
+        .resize-handle {
+            position: absolute;
+            right: -5px;
+            bottom: -5px;
+            width: 12px;
+            height: 12px;
+            background-color: #2563EB;
+            border: 2px solid #FFFFFF;
+            border-radius: 2px;
+            cursor: nwse-resize;
+            display: none;
+            z-index: 30;
+        }
+        .swing-design-item.selected .resize-handle {
+            display: block;
+        }
+        /* Apariencia Swing auténtica */
+        .swing-jlabel {
+            padding: 2px 6px;
+            font-size: 13px;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .swing-jtextfield {
+            background-color: #FFFFFF;
+            border: 1px solid #7A8A99;
+            box-shadow: inset 1px 1px 2px rgba(0,0,0,0.12);
+            border-radius: 2px;
+            padding: 4px 8px;
+            font-size: 13px;
+        }
+        .swing-jbutton {
+            background: linear-gradient(180deg, #F8FAFC 0%, #E2E8F0 55%, #CBD5E1 100%);
+            border: 1px solid #64748B;
+            border-radius: 3px;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 13px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.12), inset 0 1px 0 #FFFFFF;
+        }
+        .swing-jbutton:active {
+            background: #CBD5E1;
+            transform: translateY(1px);
+        }
+        /* Badge de nombre de variable en modo diseño */
+        .var-badge {
+            position: absolute;
+            top: -16px;
+            left: 0;
+            background-color: #1E293B;
+            color: #F8FAFC;
+            font-family: 'Fira Code', monospace;
+            font-size: 10px;
+            padding: 0 4px;
+            border-radius: 2px;
+            pointer-events: none;
+            white-space: nowrap;
+            opacity: 0.9;
+        }
+        .code-badge {
+            position: absolute;
+            top: -16px;
+            right: 0;
+            background-color: #059669;
+            color: #FFFFFF;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 0 4px;
+            border-radius: 2px;
+            pointer-events: none;
+        }
+        /* Editor de Código estilo NetBeans */
+        .nb-guarded {
+            background-color: #EBF1F5;
+            color: #475569;
+            border-left: 3px solid #94A3B8;
+            padding: 4px 10px;
+            font-family: 'Fira Code', monospace;
+            font-size: 12px;
+        }
+        #java-code-area {
+            font-family: 'Fira Code', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            tab-size: 4;
+            user-select: text;
+        }
+        /* Resaltado no invasivo para el Tutorial Interactivo Paso a Paso */
+        .tour-highlight {
+            position: relative !important;
+            z-index: 65 !important;
+            box-shadow: 0 0 0 4px #3B82F6, 0 0 0 9999px rgba(15, 23, 42, 0.62) !important;
+            border-radius: 10px;
+            transition: box-shadow 0.25s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col text-slate-800">
+
+    <!-- =========================================================================
+         BARRA SUPERIOR DE HERRAMIENTAS DE APACHE NETBEANS IDE 8.2
+    ========================================================================== -->
+    <header class="nb-toolbar px-3 py-2 shadow-sm sticky top-0 z-30">
+        <div class="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-2">
+            <!-- Logo e Identidad -->
+            <div class="flex items-center gap-2.5">
+                <div class="bg-blue-700 p-1.5 rounded-lg shadow-inner flex items-center justify-center">
+                    <svg class="w-6 h-6" viewBox="0 0 64 64" fill="none">
+                        <polygon points="32,4 58,19 32,34 6,19" fill="#93C5FD"/>
+                        <polygon points="6,19 32,34 32,60 6,45" fill="#3B82F6"/>
+                        <polygon points="58,19 32,34 32,60 58,45" fill="#1D4ED8"/>
+                        <polygon points="32,14 48,23 32,32 16,23" fill="#FFFFFF"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-bold text-sm sm:text-base text-slate-900 leading-tight">
+                            Apache NetBeans IDE 8.2 <span class="text-blue-700 font-extrabold">— Simulador Java Swing</span>
+                        </h1>
+                        <span class="hidden md:inline-block text-[11px] bg-blue-100 text-blue-800 font-semibold px-2 py-0.5 rounded border border-blue-200">
+                            2.º Bachillerato Técnico en Informática
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-600 hidden sm:block">
+                        Diseña tu formulario JFrame, configura propiedades, programa eventos ActionPerformed y ejecútalo.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Botones de Acción del IDE -->
+            <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <!-- Botón Tutorial Interactivo Paso a Paso -->
+                <button onclick="iniciarTutorial()" id="btn-tutorial-guiado" class="bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs sm:text-sm px-3 py-2 rounded-lg shadow-sm transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                    <span>Tutorial Guiado</span>
+                </button>
+
+                <!-- Selector de Retos Prácticos -->
+                <button onclick="abrirModalRetos()" id="btn-retos-header" class="bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-950 font-bold text-xs sm:text-sm px-3 py-2 rounded-lg shadow-sm transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>Retos Prácticos</span>
+                    <span id="badge-reto-activo" class="bg-slate-900 text-amber-300 text-[10px] px-1.5 py-0.5 rounded ml-1">Libre</span>
+                </button>
+
+                <!-- Botón Ejecutar Formulario (Run File Shift+F6) -->
+                <button onclick="ejecutarFormulario()" id="btn-ejecutar-header" class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs sm:text-sm px-3.5 py-2 rounded-lg shadow-sm transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-play"></i>
+                    <span>EJECUTAR FORMULARIO</span>
+                </button>
+
+                <!-- Nuevo Formulario / Reiniciar -->
+                <button onclick="confirmarNuevoFormulario()" class="bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold text-xs px-2.5 py-2 rounded-lg shadow-sm transition flex items-center gap-1.5" title="Nuevo Formulario en blanco">
+                    <i class="fa-solid fa-file-circle-plus text-blue-600"></i>
+                    <span class="hidden md:inline">Nuevo</span>
+                </button>
+
+                <button onclick="confirmarReinicioCompleto()" class="bg-white hover:bg-rose-50 text-rose-700 border border-rose-200 font-semibold text-xs px-2.5 py-2 rounded-lg shadow-sm transition flex items-center gap-1.5" title="Reiniciar simulador y progreso">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span class="hidden md:inline">Reiniciar</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Barra de Guía Rápida / Reto Activo -->
+    <div id="barra-reto-banner" class="bg-slate-800 text-slate-100 px-4 py-2 text-xs flex flex-wrap items-center justify-between gap-2 border-b border-slate-700">
+        <div class="flex items-center gap-2">
+            <span class="bg-blue-600 text-white font-bold px-2 py-0.5 rounded text-[11px]" id="banner-titulo-modo">MODO LIBRE</span>
+            <span id="banner-instruccion" class="text-slate-200">
+                Arrastra componentes desde la <strong>Paleta</strong> al lienzo (o tócalos en celular y luego toca el lienzo). Haz <strong>doble clic en un JButton</strong> para programarlo.
+            </span>
+        </div>
+        <div class="flex items-center gap-2">
+            <button id="btn-ver-ayuda-reto" onclick="mostrarAyudaReto()" class="hidden bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 px-2.5 py-1 rounded font-semibold transition">
+                <i class="fa-solid fa-lightbulb mr-1"></i> Necesito ayuda
+            </button>
+            <button id="btn-verificar-reto" onclick="validarRetoActual()" class="hidden bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-3 py-1 rounded transition">
+                <i class="fa-solid fa-check-double mr-1"></i> Verificar Reto
+            </button>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         ÁREA DE TRABAJO PRINCIPAL DE 3 COLUMNAS (NETBEANS WORKSPACE)
+    ========================================================================== -->
+    <main class="flex-grow max-w-[1600px] w-full mx-auto p-2 sm:p-3 grid grid-cols-1 lg:grid-cols-12 gap-3">
+
+        <!-- COLUMNA IZQUIERDA (3 cols): PALETA DE COMPONENTES & NAVIGATOR -->
+        <aside class="lg:col-span-3 flex flex-col gap-3">
+            <!-- A. PALETA DE COMPONENTES SWING -->
+            <div id="panel-paleta-tour" class="nb-panel rounded-lg shadow-sm overflow-hidden">
+                <div class="nb-panel-header">
+                    <span><i class="fa-solid fa-shapes text-blue-600 mr-1.5"></i>Paleta (Swing Controls)</span>
+                    <span class="text-[10px] font-normal text-slate-500">Arrastra o toca</span>
+                </div>
+                <div class="p-2.5 grid grid-cols-3 lg:grid-cols-1 gap-2 bg-white">
+                    <!-- JLabel -->
+                    <div draggable="true" ondragstart="iniciarArrastrePaleta(event, 'JLabel')" onclick="seleccionarHerramientaPaleta('JLabel')" id="paleta-JLabel"
+                         class="paleta-item cursor-grab active:cursor-grabbing border border-slate-300 hover:border-blue-500 hover:bg-blue-50 rounded-lg p-2.5 flex flex-col lg:flex-row items-center gap-2 transition">
+                        <div class="w-8 h-8 rounded bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                            <i class="fa-solid fa-font"></i>
+                        </div>
+                        <div class="text-center lg:text-left">
+                            <div class="font-bold text-xs text-slate-800">JLabel</div>
+                            <div class="text-[10px] text-slate-500 hidden sm:block">Etiqueta de texto</div>
+                        </div>
+                    </div>
+
+                    <!-- JTextField -->
+                    <div draggable="true" ondragstart="iniciarArrastrePaleta(event, 'JTextField')" onclick="seleccionarHerramientaPaleta('JTextField')" id="paleta-JTextField"
+                         class="paleta-item cursor-grab active:cursor-grabbing border border-slate-300 hover:border-blue-500 hover:bg-blue-50 rounded-lg p-2.5 flex flex-col lg:flex-row items-center gap-2 transition">
+                        <div class="w-8 h-8 rounded bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                            <i class="fa-solid fa-i-cursor"></i>
+                        </div>
+                        <div class="text-center lg:text-left">
+                            <div class="font-bold text-xs text-slate-800">JTextField</div>
+                            <div class="text-[10px] text-slate-500 hidden sm:block">Campo de ingreso</div>
+                        </div>
+                    </div>
+
+                    <!-- JButton -->
+                    <div draggable="true" ondragstart="iniciarArrastrePaleta(event, 'JButton')" onclick="seleccionarHerramientaPaleta('JButton')" id="paleta-JButton"
+                         class="paleta-item cursor-grab active:cursor-grabbing border border-slate-300 hover:border-blue-500 hover:bg-blue-50 rounded-lg p-2.5 flex flex-col lg:flex-row items-center gap-2 transition">
+                        <div class="w-8 h-8 rounded bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                            <i class="fa-solid fa-square-check"></i>
+                        </div>
+                        <div class="text-center lg:text-left">
+                            <div class="font-bold text-xs text-slate-800">JButton</div>
+                            <div class="text-[10px] text-slate-500 hidden sm:block">Botón de acción</div>
+                        </div>
+                    </div>
+                </div>
+                <div id="aviso-toque-movil" class="hidden bg-blue-600 text-white text-[11px] px-3 py-1.5 font-medium text-center">
+                    Herramienta seleccionada: <strong id="herramienta-activa-nombre"></strong>. Toca el formulario para colocarlo.
+                </div>
+            </div>
+
+            <!-- NAVIGATOR (ÁRBOL DE COMPONENTES DEL JFRAME) -->
+            <div class="nb-panel rounded-lg shadow-sm overflow-hidden flex-grow flex flex-col">
+                <div class="nb-panel-header">
+                    <span><i class="fa-solid fa-sitemap text-indigo-600 mr-1.5"></i>Navigator (Componentes)</span>
+                    <span id="contador-componentes" class="bg-slate-200 px-1.5 py-0.5 rounded text-[10px]">0</span>
+                </div>
+                <div class="p-2 bg-white flex-grow overflow-y-auto max-h-56 lg:max-h-none font-mono text-xs space-y-1" id="navigator-list">
+                    <div class="text-slate-400 italic text-center py-6 text-xs font-sans">
+                        El JFrame está vacío.<br>Agrega controles desde la Paleta.
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- COLUMNA CENTRAL (6 cols): DISEÑADOR VISUAL DEL FORMULARIO JFRAME -->
+        <section class="lg:col-span-6 flex flex-col">
+            <div id="panel-disenador-tour" class="nb-panel rounded-lg shadow-md overflow-hidden flex-grow flex flex-col">
+                <!-- Pestañas Source / Design estilo NetBeans -->
+                <div class="nb-panel-header">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-white border border-slate-400 px-2.5 py-0.5 rounded text-blue-700 font-bold text-xs">
+                            <i class="fa-solid fa-object-group mr-1"></i>Design
+                        </span>
+                        <button onclick="abrirEditorBotonSeleccionado()" class="hover:bg-slate-200 px-2.5 py-0.5 rounded text-slate-700 font-semibold text-xs transition" title="Abrir editor de código del botón seleccionado">
+                            <i class="fa-solid fa-code mr-1"></i>Source (Botones)
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2 text-[11px] text-slate-600">
+                        <span id="form-title-display" class="font-mono font-semibold">Formulario.java [JFrame]</span>
+                    </div>
+                </div>
+
+                <!-- Marco de Ventana JFrame -->
+                <div class="p-2 sm:p-3 bg-slate-300/70 flex-grow flex flex-col">
+                    <div class="bg-white border-2 border-slate-500 rounded-md shadow-inner flex-grow flex flex-col overflow-hidden">
+                        <!-- Barra de título del JFrame simulado -->
+                        <div class="bg-gradient-to-r from-blue-100 via-blue-200 to-blue-100 border-b border-slate-400 px-3 py-1.5 flex items-center justify-between">
+                            <div class="flex items-center gap-1.5">
+                                <span class="w-3.5 h-3.5 rounded-sm bg-orange-500 text-white text-[9px] font-bold flex items-center justify-center">J</span>
+                                <span class="text-xs font-bold text-slate-800" id="jframe-window-title">MiFormulario - JFrame</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                                <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                                <span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span>
+                            </div>
+                        </div>
+
+                        <!-- Lienzo interactivo donde se sueltan y mueven los controles -->
+                        <div id="design-canvas"
+                             class="flex-grow min-h-[380px] sm:min-h-[450px] w-full"
+                             ondragover="permitirSoltar(event)"
+                             ondrop="soltarEnLienzo(event)"
+                             onclick="clicEnLienzo(event)">
+                            <!-- Mensaje guía cuando está vacío -->
+                            <div id="canvas-empty-hint" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 pointer-events-none p-6 text-center">
+                                <i class="fa-solid fa-arrow-pointer text-3xl mb-2 text-slate-300"></i>
+                                <p class="text-sm font-semibold text-slate-500">Área de Diseño JFrame en Blanco</p>
+                                <p class="text-xs max-w-xs mt-1">
+                                    Arrastra un <strong>JLabel</strong>, <strong>JTextField</strong> o <strong>JButton</strong> aquí. En celulares, toca un control de la paleta y luego toca este lienzo.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Barra inferior de estado y ayuda contextual -->
+                <div class="bg-slate-100 border-t border-slate-300 px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div id="status-bar-msg" class="text-slate-700 flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-info text-blue-600"></i>
+                        <span>Listo. Selecciona un control para editar sus propiedades o haz doble clic en un botón para programarlo.</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="abrirEditorBotonSeleccionado()" id="btn-programar-rapido" class="hidden bg-blue-600 hover:bg-blue-700 text-white font-semibold px-2.5 py-1 rounded text-xs transition">
+                            <i class="fa-solid fa-code mr-1"></i> Programar Botón
+                        </button>
+                        <button onclick="eliminarComponenteSeleccionado()" id="btn-eliminar-rapido" class="hidden bg-rose-600 hover:bg-rose-700 text-white font-semibold px-2.5 py-1 rounded text-xs transition">
+                            <i class="fa-solid fa-trash-can mr-1"></i> Eliminar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- COLUMNA DERECHA (3 cols): PANEL DE PROPIEDADES (PROPERTIES) -->
+        <aside class="lg:col-span-3 flex flex-col">
+            <div id="panel-propiedades-tour" class="nb-panel rounded-lg shadow-sm overflow-hidden flex-grow flex flex-col">
+                <div class="nb-panel-header">
+                    <span><i class="fa-solid fa-sliders text-blue-600 mr-1.5"></i>Properties (Propiedades)</span>
+                    <span id="prop-tipo-badge" class="text-[10px] font-mono bg-slate-200 px-1.5 py-0.5 rounded text-slate-700">Ninguno</span>
+                </div>
+
+                <!-- Contenido cuando NO hay componente seleccionado -->
+                <div id="prop-empty" class="p-6 bg-white flex-grow flex flex-col items-center justify-center text-center text-slate-400">
+                    <i class="fa-solid fa-hand-pointer text-2xl mb-2 text-slate-300"></i>
+                    <p class="text-xs font-medium text-slate-500">Ningún componente seleccionado</p>
+                    <p class="text-[11px] mt-1">Haz clic sobre cualquier etiqueta, campo o botón en el formulario para modificar su nombre de variable, texto, tamaño y colores.</p>
+                </div>
+
+                <!-- Formulario de Propiedades del Componente Seleccionado -->
+                <div id="prop-form" class="hidden p-3 bg-white flex-grow space-y-3 overflow-y-auto text-xs">
+                    <!-- Nombre de variable (Code -> Variable Name) -->
+                    <div class="bg-amber-50 border border-amber-200 p-2.5 rounded-lg">
+                        <label class="block font-bold text-amber-950 mb-1">
+                            Nombre de variable (name):
+                            <span class="block text-[10px] font-normal text-amber-800">Usado en el código Java (ej. txtNombre, com, pre)</span>
+                        </label>
+                        <input type="text" id="prop-name" oninput="actualizarPropiedad('name', this.value)"
+                               class="w-full font-mono bg-white border border-amber-400 rounded px-2.5 py-1.5 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <p id="prop-name-error" class="text-[10px] text-rose-600 font-semibold mt-1 hidden"></p>
+                    </div>
+
+                    <!-- Texto visible (text) -->
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Texto visible (text):</label>
+                        <input type="text" id="prop-text" oninput="actualizarPropiedad('text', this.value)"
+                               class="w-full bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <!-- Tamaño (width x height) -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Ancho (width):</label>
+                            <input type="number" id="prop-width" min="30" max="600" oninput="actualizarPropiedad('width', this.value)"
+                                   class="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1.5 text-slate-900">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Alto (height):</label>
+                            <input type="number" id="prop-height" min="20" max="300" oninput="actualizarPropiedad('height', this.value)"
+                                   class="w-full bg-slate-50 border border-slate-300 rounded px-2 py-1.5 text-slate-900">
+                        </div>
+                    </div>
+
+                    <!-- Colores (background & foreground) -->
+                    <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200">
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Color fondo:</label>
+                            <div class="flex items-center gap-1.5">
+                                <input type="color" id="prop-bg" oninput="actualizarPropiedad('bgColor', this.value)"
+                                       class="w-8 h-8 rounded border border-slate-300 cursor-pointer">
+                                <button onclick="restaurarColorFondo()" class="text-[10px] text-blue-600 hover:underline">Defecto</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 mb-1">Color letra:</label>
+                            <div class="flex items-center gap-1.5">
+                                <input type="color" id="prop-fg" oninput="actualizarPropiedad('fgColor', this.value)"
+                                       class="w-8 h-8 rounded border border-slate-300 cursor-pointer">
+                                <span class="text-[10px] text-slate-500">foreground</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Acción especial si es JButton -->
+                    <div id="prop-button-actions" class="hidden pt-2 border-t border-slate-200 space-y-2">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-2.5">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="font-bold text-blue-900">Evento ActionPerformed</span>
+                                <span id="prop-code-status" class="text-[10px] px-1.5 py-0.5 rounded font-bold bg-amber-200 text-amber-900">Sin código</span>
+                            </div>
+                            <button onclick="abrirEditorBotonSeleccionado()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg shadow-sm transition flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-code"></i>
+                                <span>Programar este Botón</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Botón Eliminar Componente -->
+                    <div class="pt-2 border-t border-slate-200">
+                        <button onclick="eliminarComponenteSeleccionado()" class="w-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-semibold py-2 px-3 rounded-lg transition flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-trash-can"></i>
+                            <span>Eliminar Componente</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- =========================================================================
+         MODAL 1: EDITOR DE CÓDIGO JAVA (ActionPerformed de cada JButton)
+    ========================================================================== -->
+    <div id="modal-editor-codigo" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden items-center justify-center p-2 sm:p-4">
+        <div class="bg-white rounded-xl max-w-3xl w-full shadow-2xl border border-slate-400 overflow-hidden flex flex-col max-h-[92vh]">
+            <!-- Barra superior del editor -->
+            <div class="bg-slate-800 text-white px-4 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-brands fa-java text-orange-400 text-lg"></i>
+                    <div>
+                        <h3 class="font-bold text-sm sm:text-base">Editor de Eventos Java — NetBeans Source</h3>
+                        <p class="text-[11px] text-slate-300">Programando botón: <strong id="editor-btn-label" class="text-amber-300 font-mono"></strong></p>
+                    </div>
+                </div>
+                <button onclick="cerrarEditorCodigo()" class="text-slate-300 hover:text-white p-1.5 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Variables disponibles en el formulario -->
+            <div class="bg-slate-100 border-b border-slate-300 px-4 py-2 text-xs flex flex-wrap items-center gap-2">
+                <span class="font-bold text-slate-700">Componentes disponibles en tu formulario:</span>
+                <div id="editor-lista-variables" class="flex flex-wrap gap-1.5"></div>
+            </div>
+
+            <!-- Área de Código Java -->
+            <div class="p-4 bg-white flex-grow overflow-y-auto space-y-2">
+                <div class="nb-guarded rounded-t">
+                    <span class="text-blue-700 font-semibold">private void</span> <span id="editor-method-name" class="font-bold text-slate-900">jButton1ActionPerformed</span>(java.awt.event.ActionEvent evt) {
+                </div>
+                <div class="pl-2 sm:pl-4">
+                    <textarea id="java-code-area" rows="8" spellcheck="false"
+                              placeholder="// Escribe aquí tus instrucciones Java Swing. Ejemplos:&#10;// pre.setText(&quot;La moto se la ganó &quot; + com.getText());&#10;// com.setText(&quot;&quot;);&#10;// com.requestFocus();"
+                              class="w-full border-2 border-blue-300 focus:border-blue-600 rounded-lg p-3 bg-amber-50/40 focus:bg-white text-slate-900 focus:outline-none"></textarea>
+                </div>
+                <div class="nb-guarded rounded-b">}</div>
+
+                <!-- Panel de Diagnóstico de Sintaxis Java -->
+                <div id="editor-diagnostico" class="hidden rounded-lg p-3 text-xs border"></div>
+
+                <!-- Chuleta rápida de métodos permitidos -->
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-[11px] text-slate-600">
+                    <strong class="text-slate-800">Instrucciones soportadas por el simulador:</strong>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 mt-1 font-mono text-[11px]">
+                        <div>• campo.setText("texto" + otro.getText());</div>
+                        <div>• campo.setText(""); <span class="font-sans text-slate-500">(limpiar)</span></div>
+                        <div>• campo.requestFocus(); <span class="font-sans text-slate-500">(enfocar)</span></div>
+                        <div>• int a = Integer.parseInt(txt1.getText());</div>
+                        <div>• double n1 = Double.parseDouble(txt1.getText());</div>
+                        <div>• txtRes.setText(suma + "");</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pie del editor con botones Guardar, Verificar y Borrar -->
+            <div class="bg-slate-100 border-t border-slate-300 px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+                <button onclick="borrarCodigoEditor()" class="bg-white hover:bg-rose-50 text-rose-700 border border-rose-300 font-semibold text-xs px-3 py-2 rounded-lg transition">
+                    <i class="fa-solid fa-eraser mr-1"></i> Borrar instrucciones
+                </button>
+                <div class="flex items-center gap-2">
+                    <button onclick="verificarSintaxisEditor()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-3.5 py-2 rounded-lg transition">
+                        <i class="fa-solid fa-stethoscope mr-1"></i> Comprobar Sintaxis
+                    </button>
+                    <button onclick="guardarCodigoBoton()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm px-4 py-2 rounded-lg shadow transition">
+                        <i class="fa-solid fa-floppy-disk mr-1"></i> Guardar Programación
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         MODAL 2: VISTA DE EJECUCIÓN DEL FORMULARIO (RUNTIME JFRAME)
+    ========================================================================== -->
+    <div id="modal-ejecucion" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 hidden items-center justify-center p-2 sm:p-4">
+        <div class="bg-slate-200 rounded-xl max-w-4xl w-full shadow-2xl border-2 border-slate-600 overflow-hidden flex flex-col max-h-[94vh]">
+            <!-- Barra de título estilo ventana ejecutándose en Windows/Java -->
+            <div class="bg-gradient-to-r from-emerald-800 to-teal-900 text-white px-4 py-2.5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="font-bold text-xs sm:text-sm">Ejecutando Formulario Java (Run File)</span>
+                </div>
+                <button onclick="cerrarEjecucion()" class="bg-white/15 hover:bg-white/25 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-pen-ruler"></i>
+                    <span>Regresar al Diseñador</span>
+                </button>
+            </div>
+
+            <!-- Contenedor del Formulario Vivo -->
+            <div class="p-3 sm:p-5 bg-slate-300 overflow-auto flex-grow flex flex-col items-center justify-center">
+                <div class="bg-white border-2 border-slate-500 rounded shadow-xl overflow-hidden w-full max-w-[680px]">
+                    <div class="bg-gradient-to-r from-blue-200 via-blue-300 to-blue-200 border-b border-slate-400 px-3 py-1 flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                            <span class="w-3.5 h-3.5 rounded-sm bg-orange-500 text-white text-[9px] font-bold flex items-center justify-center">J</span>
+                            Vista de Ejecución — JFrame
+                        </span>
+                        <button onclick="cerrarEjecucion()" class="text-slate-700 hover:text-rose-600 font-bold text-xs px-1.5">✕</button>
+                    </div>
+                    <!-- Lienzo de ejecución con las posiciones exactas diseñadas -->
+                    <div id="runtime-canvas" class="relative bg-[#F0F0F0] w-full min-h-[380px] sm:min-h-[430px]"></div>
+                </div>
+            </div>
+
+            <!-- Consola de Salida de NetBeans (Output Window) -->
+            <div class="bg-slate-900 text-slate-200 border-t border-slate-700 p-3 font-mono text-xs">
+                <div class="flex items-center justify-between text-[11px] text-slate-400 border-b border-slate-800 pb-1 mb-1.5">
+                    <span><i class="fa-solid fa-terminal mr-1 text-emerald-400"></i> Output - Java Application (Consola de Ejecución)</span>
+                    <button onclick="limpiarConsolaRuntime()" class="hover:text-white">Limpiar consola</button>
+                </div>
+                <div id="runtime-console" class="max-h-24 overflow-y-auto space-y-1 text-xs">
+                    <div class="text-emerald-400">run: Formulario iniciado correctamente. Interactúa con tus controles.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         MODAL 3: RETOS PRÁCTICOS PARA EL ESTUDIANTE
+    ========================================================================== -->
+    <div id="modal-retos" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden items-center justify-center p-3">
+        <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-300 overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-base sm:text-lg flex items-center gap-2">
+                        <i class="fa-solid fa-trophy text-amber-400"></i>
+                        <span>Ejercicios Prácticos Guiados</span>
+                    </h3>
+                    <p class="text-xs text-slate-300">Selecciona un reto, construye el formulario desde cero y programa sus botones.</p>
+                </div>
+                <button onclick="cerrarModalRetos()" class="text-slate-400 hover:text-white p-1">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <div class="p-4 sm:p-5 overflow-y-auto space-y-3 text-sm">
+                <!-- Modo Libre -->
+                <div class="border border-slate-200 rounded-xl p-4 hover:border-blue-400 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <span class="text-[11px] font-bold uppercase bg-slate-100 text-slate-700 px-2 py-0.5 rounded">Práctica Libre</span>
+                        <h4 class="font-bold text-slate-900 mt-1">Diseño Libre de Formularios</h4>
+                        <p class="text-xs text-slate-600 mt-0.5">Experimenta libremente creando cualquier formulario con etiquetas, campos y botones.</p>
+                    </div>
+                    <button onclick="seleccionarReto(0)" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-4 py-2 rounded-lg flex-shrink-0">
+                        Activar Modo Libre
+                    </button>
+                </div>
+
+                <!-- RETO 1 -->
+                <div class="border border-slate-200 rounded-xl p-4 hover:border-blue-400 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[11px] font-bold uppercase bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Reto 1</span>
+                            <span id="status-reto-1" class="text-[11px] font-bold text-slate-400">Pendiente</span>
+                        </div>
+                        <h4 class="font-bold text-slate-900">Mensaje Personalizado</h4>
+                        <p class="text-xs text-slate-600">
+                            Diseña un formulario con: <strong>1 etiqueta</strong> de instrucción, <strong>1 campo de texto</strong> para el nombre, <strong>1 etiqueta</strong> para mostrar el resultado, <strong>1 botón MOSTRAR</strong> y <strong>1 botón LIMPIAR</strong>.
+                        </p>
+                    </div>
+                    <button onclick="seleccionarReto(1)" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg flex-shrink-0">
+                        Iniciar Reto 1
+                    </button>
+                </div>
+
+                <!-- RETO 2 -->
+                <div class="border border-slate-200 rounded-xl p-4 hover:border-blue-400 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[11px] font-bold uppercase bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded">Reto 2</span>
+                            <span id="status-reto-2" class="text-[11px] font-bold text-slate-400">Pendiente</span>
+                        </div>
+                        <h4 class="font-bold text-slate-900">Suma de Dos Números</h4>
+                        <p class="text-xs text-slate-600">
+                            Agrega etiquetas y campos para <strong>PRIMER VALOR</strong>, <strong>SEGUNDO VALOR</strong> y <strong>RESULTADO</strong>, más los botones <strong>CALCULAR</strong> y <strong>LIMPIAR</strong> usando <code class="bg-slate-100 px-1 rounded">Integer.parseInt()</code>, <code class="bg-slate-100 px-1 rounded">getText()</code>, <code class="bg-slate-100 px-1 rounded">setText()</code> y <code class="bg-slate-100 px-1 rounded">requestFocus()</code>.
+                        </p>
+                    </div>
+                    <button onclick="seleccionarReto(2)" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg flex-shrink-0">
+                        Iniciar Reto 2
+                    </button>
+                </div>
+
+                <!-- RETO 3 -->
+                <div class="border border-slate-200 rounded-xl p-4 hover:border-blue-400 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[11px] font-bold uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded">Reto 3</span>
+                            <span id="status-reto-3" class="text-[11px] font-bold text-slate-400">Pendiente</span>
+                        </div>
+                        <h4 class="font-bold text-slate-900">Suma y Promedio de Notas</h4>
+                        <p class="text-xs text-slate-600">
+                            Construye un formulario para ingresar <strong>tres notas parciales</strong> y visualizar la <strong>suma</strong> y el <strong>promedio</strong>. Programa los botones <strong>CALCULAR</strong> y <strong>LIMPIAR</strong>.
+                        </p>
+                    </div>
+                    <button onclick="seleccionarReto(3)" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg flex-shrink-0">
+                        Iniciar Reto 3
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         MODAL 4: DIÁLOGO GENÉRICO DE NOTIFICACIÓN / CONFIRMACIÓN / AYUDA
+    ========================================================================== -->
+    <div id="modal-dialogo" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex items-start gap-3">
+                <div id="dialogo-icon" class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0 text-lg">
+                    <i class="fa-solid fa-circle-info"></i>
+                </div>
+                <div class="flex-grow">
+                    <h3 id="dialogo-titulo" class="font-bold text-base text-slate-900">Información</h3>
+                    <div id="dialogo-mensaje" class="text-xs sm:text-sm text-slate-600 mt-1.5 space-y-2"></div>
+                </div>
+            </div>
+            <div id="dialogo-botones" class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100"></div>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         MODAL 5: TUTORIAL INTERACTIVO PASO A PASO (CAPA FLOTANTE NO INVASIVA)
+    ========================================================================== -->
+    <div id="tour-overlay" class="fixed inset-0 z-[70] hidden pointer-events-none flex items-end sm:items-center justify-center p-3 sm:p-6">
+        <div id="tour-card" class="pointer-events-auto bg-white rounded-2xl max-w-md w-full shadow-2xl border-2 border-blue-600 overflow-hidden">
+            <div class="bg-blue-600 text-white px-4 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="bg-white text-blue-700 font-extrabold text-xs px-2 py-0.5 rounded-full" id="tour-step-badge">Paso 1 de 6</span>
+                    <h3 class="font-bold text-sm" id="tour-title">Bienvenido al Simulador</h3>
+                </div>
+                <button onclick="cerrarTutorial()" class="text-blue-100 hover:text-white p-1" title="Cerrar tutorial">
+                    <i class="fa-solid fa-xmark text-base"></i>
+                </button>
+            </div>
+            <div class="p-4 text-xs sm:text-sm text-slate-700 space-y-2 leading-relaxed" id="tour-body"></div>
+            <div class="bg-slate-50 border-t border-slate-200 px-4 py-3 flex items-center justify-between gap-2">
+                <button onclick="cerrarTutorial()" class="text-xs font-semibold text-slate-500 hover:text-slate-800 px-2 py-1.5">
+                    Salir del tutorial
+                </button>
+                <div class="flex items-center gap-2">
+                    <button id="tour-prev-btn" onclick="cambiarPasoTutorial(-1)" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs px-3 py-2 rounded-lg transition">
+                        <i class="fa-solid fa-arrow-left mr-1"></i> Anterior
+                    </button>
+                    <button id="tour-next-btn" onclick="cambiarPasoTutorial(1)" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2 rounded-lg shadow transition">
+                        Siguiente <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================================
+         LÓGICA DEL SIMULADOR IDE NETBEANS 8.2 E INTÉRPRETE JAVA SWING
+    ========================================================================== -->
+    <script>
+        // =====================================================================
+        // 1. ESTADO GLOBAL DE LA APLICACIÓN
+        // =====================================================================
+        let componentes = []; // Lista de controles colocados en el JFrame
+        let seleccionadoId = null; // ID interno del componente seleccionado
+        let herramientaPaletaActiva = null; // Para inserción por toque en móviles/tablets
+        let contadoresTipo = { JLabel: 0, JTextField: 0, JButton: 0 };
+        let botonEditandoId = null; // ID del JButton abierto en el editor de código
+        let retoActual = 0; // 0 = Libre, 1 = Mensaje, 2 = Suma, 3 = Notas
+        let retosCompletados = { 1: false, 2: false, 3: false };
+
+        const STORAGE_KEY = 'netbeans_swing_sim_v2';
+
+        // Cargar estado guardado automáticamente en localStorage al iniciar
+        window.addEventListener('DOMContentLoaded', () => {
+            cargarEstadoLocal();
+            renderizarLienzo();
+            renderizarNavigator();
+            actualizarPanelPropiedades();
+        });
+
+        function guardarEstadoLocal() {
+            try {
+                const payload = {
+                    componentes,
+                    contadoresTipo,
+                    retoActual,
+                    retosCompletados
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+            } catch (e) {
+                // Ignorar si el almacenamiento local está restringido
+            }
+        }
+
+        function cargarEstadoLocal() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return;
+                const data = JSON.parse(raw);
+                if (Array.isArray(data.componentes)) componentes = data.componentes;
+                if (data.contadoresTipo) contadoresTipo = data.contadoresTipo;
+                if (typeof data.retoActual === 'number') {
+                    retoActual = data.retoActual;
+                    actualizarBannerReto();
+                }
+                if (data.retosCompletados) {
+                    retosCompletados = data.retosCompletados;
+                    actualizarBadgesRetos();
+                }
+            } catch (e) {
+                console.warn('No se pudo restaurar sesión previa.');
+            }
+        }
+
+        // =====================================================================
+        // 2. PALETA DE COMPONENTES (ARRASTRAR EN PC Y TOCAR EN CELULAR)
+        // =====================================================================
+        function iniciarArrastrePaleta(event, tipo) {
+            event.dataTransfer.setData('componentType', tipo);
+            seleccionarHerramientaPaleta(null);
+        }
+
+        function seleccionarHerramientaPaleta(tipo) {
+            // Limpiar estilos previos
+            document.querySelectorAll('.paleta-item').forEach(el => {
+                el.classList.remove('ring-2', 'ring-blue-600', 'bg-blue-50', 'border-blue-600');
+            });
+
+            const aviso = document.getElementById('aviso-toque-movil');
+            if (!tipo || herramientaPaletaActiva === tipo) {
+                herramientaPaletaActiva = null;
+                aviso.classList.add('hidden');
+                return;
+            }
+
+            herramientaPaletaActiva = tipo;
+            const el = document.getElementById(`paleta-${tipo}`);
+            if (el) el.classList.add('ring-2', 'ring-blue-600', 'bg-blue-50', 'border-blue-600');
+            document.getElementById('herramienta-activa-nombre').textContent = tipo;
+            aviso.classList.remove('hidden');
+            actualizarBarraEstado(`Herramienta ${tipo} lista: toca cualquier punto dentro del formulario JFrame para colocarla.`);
+        }
+
+        function permitirSoltar(event) {
+            event.preventDefault();
+        }
+
+        function soltarEnLienzo(event) {
+            event.preventDefault();
+            const tipo = event.dataTransfer.getData('componentType');
+            if (!tipo) return;
+            const canvas = document.getElementById('design-canvas');
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.max(8, Math.min(rect.width - 110, event.clientX - rect.left - 40));
+            const y = Math.max(16, Math.min(rect.height - 40, event.clientY - rect.top - 15));
+            crearComponente(tipo, x, y);
+        }
+
+        function clicEnLienzo(event) {
+            const canvas = document.getElementById('design-canvas');
+            // Si hay una herramienta seleccionada en modo táctil/clic, crear componente donde tocó
+            if (herramientaPaletaActiva) {
+                const rect = canvas.getBoundingClientRect();
+                const x = Math.max(8, Math.min(rect.width - 110, event.clientX - rect.left - 35));
+                const y = Math.max(16, Math.min(rect.height - 40, event.clientY - rect.top - 15));
+                crearComponente(herramientaPaletaActiva, x, y);
+                seleccionarHerramientaPaleta(null);
+                return;
+            }
+
+            // Si tocó el fondo vacío del lienzo, deseleccionar
+            if (event.target === canvas || event.target.id === 'canvas-empty-hint') {
+                seleccionarComponente(null);
+            }
+        }
+
+        // =====================================================================
+        // 3. CREACIÓN, MOVIMIENTO, REDIMENSIONAMIENTO Y PROPIEDADES DE CONTROLES
+        // =====================================================================
+        function crearComponente(tipo, x, y) {
+            contadoresTipo[tipo] = (contadoresTipo[tipo] || 0) + 1;
+            const num = contadoresTipo[tipo];
+
+            let defaultName = '';
+            let defaultText = '';
+            let width = 120;
+            let height = 32;
+            let bgColor = '';
+            let fgColor = '#0F172A';
+
+            if (tipo === 'JLabel') {
+                defaultName = `jLabel${num}`;
+                defaultText = `jLabel${num}`;
+                width = 120;
+                height = 28;
+                bgColor = 'transparent';
+            } else if (tipo === 'JTextField') {
+                defaultName = `jTextField${num}`;
+                defaultText = '';
+                width = 150;
+                height = 32;
+                bgColor = '#FFFFFF';
+            } else if (tipo === 'JButton') {
+                defaultName = `jButton${num}`;
+                defaultText = `jButton${num}`;
+                width = 115;
+                height = 34;
+                bgColor = '#E2E8F0';
+            }
+
+            // Garantizar que el nombre de variable no esté repetido
+            while (componentes.some(c => c.name === defaultName)) {
+                contadoresTipo[tipo]++;
+                defaultName = `${tipo.charAt(0).toLowerCase() + tipo.slice(1)}${contadoresTipo[tipo]}`;
+            }
+
+            const nuevo = {
+                id: 'comp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+                type: tipo,
+                name: defaultName,
+                text: defaultText,
+                x: Math.round(x / 4) * 4,
+                y: Math.round(y / 4) * 4,
+                width,
+                height,
+                bgColor,
+                fgColor,
+                code: '' // Solo aplica para JButton
+            };
+
+            componentes.push(nuevo);
+            seleccionarComponente(nuevo.id);
+            renderizarLienzo();
+            renderizarNavigator();
+            guardarEstadoLocal();
+            actualizarBarraEstado(`Componente ${tipo} (${nuevo.name}) agregado al formulario.`);
+        }
+
+        function seleccionarComponente(id) {
+            seleccionadoId = id;
+            renderizarLienzo();
+            renderizarNavigator();
+            actualizarPanelPropiedades();
+
+            const comp = componentes.find(c => c.id === id);
+            const btnEliminar = document.getElementById('btn-eliminar-rapido');
+            const btnProgramar = document.getElementById('btn-programar-rapido');
+
+            if (comp) {
+                btnEliminar.classList.remove('hidden');
+                if (comp.type === 'JButton') {
+                    btnProgramar.classList.remove('hidden');
+                } else {
+                    btnProgramar.classList.add('hidden');
+                }
+            } else {
+                btnEliminar.classList.add('hidden');
+                btnProgramar.classList.add('hidden');
+            }
+        }
+
+        function renderizarLienzo() {
+            const canvas = document.getElementById('design-canvas');
+            const hint = document.getElementById('canvas-empty-hint');
+
+            // Eliminar elementos anteriores manteniendo el hint
+            canvas.querySelectorAll('.swing-design-item').forEach(el => el.remove());
+
+            if (componentes.length === 0) {
+                hint.classList.remove('hidden');
+                return;
+            }
+            hint.classList.add('hidden');
+
+            componentes.forEach(comp => {
+                const el = document.createElement('div');
+                el.className = `swing-design-item ${comp.id === seleccionadoId ? 'selected' : ''}`;
+                el.style.left = comp.x + 'px';
+                el.style.top = comp.y + 'px';
+                el.style.width = comp.width + 'px';
+                el.style.height = comp.height + 'px';
+                el.style.color = comp.fgColor;
+
+                if (comp.type === 'JLabel') {
+                    el.classList.add('swing-jlabel');
+                    if (comp.bgColor && comp.bgColor !== 'transparent') {
+                        el.style.backgroundColor = comp.bgColor;
+                    }
+                    el.textContent = comp.text || ' ';
+                } else if (comp.type === 'JTextField') {
+                    el.classList.add('swing-jtextfield');
+                    el.style.backgroundColor = comp.bgColor || '#FFFFFF';
+                    el.textContent = comp.text;
+                } else if (comp.type === 'JButton') {
+                    el.classList.add('swing-jbutton');
+                    if (comp.bgColor && comp.bgColor !== '#E2E8F0') {
+                        el.style.background = comp.bgColor;
+                    }
+                    el.textContent = comp.text || 'Button';
+                }
+
+                // Etiqueta superior con el nombre de variable (name)
+                const badge = document.createElement('span');
+                badge.className = 'var-badge';
+                badge.textContent = comp.name;
+                el.appendChild(badge);
+
+                // Indicador si el JButton ya tiene código programado
+                if (comp.type === 'JButton' && comp.code && comp.code.trim() !== '') {
+                    const codeBadge = document.createElement('span');
+                    codeBadge.className = 'code-badge';
+                    codeBadge.innerHTML = '<i class="fa-solid fa-code"></i>';
+                    codeBadge.title = 'Este botón tiene código ActionPerformed programado';
+                    el.appendChild(codeBadge);
+                }
+
+                // Manejador de redimensionamiento
+                const resizer = document.createElement('div');
+                resizer.className = 'resize-handle';
+                resizer.title = 'Arrastra para cambiar el tamaño';
+                el.appendChild(resizer);
+
+                // Eventos de selección y movimiento (mouse + touch)
+                el.addEventListener('pointerdown', (e) => {
+                    e.stopPropagation();
+                    if (herramientaPaletaActiva) {
+                        seleccionarHerramientaPaleta(null);
+                    }
+                    seleccionarComponente(comp.id);
+
+                    if (e.target === resizer) {
+                        iniciarRedimension(e, comp);
+                    } else {
+                        iniciarMovimiento(e, comp);
+                    }
+                });
+
+                // Doble clic en un JButton abre el editor de código ActionPerformed
+                el.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    if (comp.type === 'JButton') {
+                        abrirEditorCodigo(comp.id);
+                    } else {
+                        seleccionarComponente(comp.id);
+                        document.getElementById('prop-text').focus();
+                    }
+                });
+
+                canvas.appendChild(el);
+            });
+        }
+
+        function iniciarMovimiento(e, comp) {
+            const canvas = document.getElementById('design-canvas');
+            const rect = canvas.getBoundingClientRect();
+            const startX = e.clientX;
+            const startY = e.clientY;
+            const origX = comp.x;
+            const origY = comp.y;
+
+            function onMove(ev) {
+                const dx = ev.clientX - startX;
+                const dy = ev.clientY - startY;
+                comp.x = Math.max(0, Math.min(rect.width - comp.width, Math.round((origX + dx) / 4) * 4));
+                comp.y = Math.max(14, Math.min(rect.height - comp.height, Math.round((origY + dy) / 4) * 4));
+                renderizarLienzo();
+            }
+
+            function onUp() {
+                window.removeEventListener('pointermove', onMove);
+                window.removeEventListener('pointerup', onUp);
+                guardarEstadoLocal();
+            }
+
+            window.addEventListener('pointermove', onMove);
+            window.addEventListener('pointerup', onUp);
+        }
+
+        function iniciarRedimension(e, comp) {
+            const canvas = document.getElementById('design-canvas');
+            const rect = canvas.getBoundingClientRect();
+            const startX = e.clientX;
+            const startY = e.clientY;
+            const origW = comp.width;
+            const origH = comp.height;
+
+            function onResize(ev) {
+                const dw = ev.clientX - startX;
+                const dh = ev.clientY - startY;
+                comp.width = Math.max(36, Math.min(rect.width - comp.x, Math.round((origW + dw) / 4) * 4));
+                comp.height = Math.max(22, Math.min(rect.height - comp.y, Math.round((origH + dh) / 4) * 4));
+                renderizarLienzo();
+                actualizarPanelPropiedades();
+            }
+
+            function onUp() {
+                window.removeEventListener('pointermove', onResize);
+                window.removeEventListener('pointerup', onUp);
+                guardarEstadoLocal();
+            }
+
+            window.addEventListener('pointermove', onResize);
+            window.addEventListener('pointerup', onUp);
+        }
+
+        function renderizarNavigator() {
+            const list = document.getElementById('navigator-list');
+            const count = document.getElementById('contador-componentes');
+            count.textContent = componentes.length;
+
+            if (componentes.length === 0) {
+                list.innerHTML = `<div class="text-slate-400 italic text-center py-6 text-xs font-sans">El JFrame está vacío.<br>Agrega controles desde la Paleta.</div>`;
+                return;
+            }
+
+            list.innerHTML = componentes.map(c => {
+                const isSel = c.id === seleccionadoId;
+                let icon = 'fa-font text-indigo-600';
+                if (c.type === 'JTextField') icon = 'fa-i-cursor text-sky-600';
+                if (c.type === 'JButton') icon = 'fa-square-check text-emerald-600';
+
+                return `
+                    <div onclick="seleccionarComponente('${c.id}')"
+                         class="flex items-center justify-between px-2 py-1.5 rounded cursor-pointer transition ${isSel ? 'bg-blue-600 text-white font-bold' : 'hover:bg-slate-100 text-slate-700'}">
+                        <span class="truncate">
+                            <i class="fa-solid ${icon} ${isSel ? 'text-white' : ''} mr-1.5"></i>${c.name}
+                        </span>
+                        <span class="text-[10px] ${isSel ? 'text-blue-200' : 'text-slate-400'}">[${c.type}]</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function actualizarPanelPropiedades() {
+            const comp = componentes.find(c => c.id === seleccionadoId);
+            const empty = document.getElementById('prop-empty');
+            const form = document.getElementById('prop-form');
+            const badge = document.getElementById('prop-tipo-badge');
+            const btnActions = document.getElementById('prop-button-actions');
+
+            if (!comp) {
+                empty.classList.remove('hidden');
+                form.classList.add('hidden');
+                badge.textContent = 'Ninguno';
+                return;
+            }
+
+            empty.classList.add('hidden');
+            form.classList.remove('hidden');
+            badge.textContent = comp.type;
+
+            document.getElementById('prop-name').value = comp.name;
+            document.getElementById('prop-name-error').classList.add('hidden');
+            document.getElementById('prop-text').value = comp.text;
+            document.getElementById('prop-width').value = comp.width;
+            document.getElementById('prop-height').value = comp.height;
+            document.getElementById('prop-bg').value = (comp.bgColor && comp.bgColor !== 'transparent') ? comp.bgColor : '#FFFFFF';
+            document.getElementById('prop-fg').value = comp.fgColor || '#0F172A';
+
+            if (comp.type === 'JButton') {
+                btnActions.classList.remove('hidden');
+                const codeStatus = document.getElementById('prop-code-status');
+                if (comp.code && comp.code.trim() !== '') {
+                    codeStatus.textContent = 'Programado ✓';
+                    codeStatus.className = 'text-[10px] px-1.5 py-0.5 rounded font-bold bg-emerald-200 text-emerald-900';
+                } else {
+                    codeStatus.textContent = 'Sin código';
+                    codeStatus.className = 'text-[10px] px-1.5 py-0.5 rounded font-bold bg-amber-200 text-amber-900';
+                }
+            } else {
+                btnActions.classList.add('hidden');
+            }
+        }
+
+        function actualizarPropiedad(prop, valor) {
+            const comp = componentes.find(c => c.id === seleccionadoId);
+            if (!comp) return;
+
+            if (prop === 'name') {
+                const limpio = valor.trim();
+                const errEl = document.getElementById('prop-name-error');
+                if (!/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(limpio)) {
+                    errEl.textContent = 'Nombre inválido en Java (sin espacios ni números al inicio).';
+                    errEl.classList.remove('hidden');
+                    return;
+                }
+                if (componentes.some(c => c.id !== comp.id && c.name === limpio)) {
+                    errEl.textContent = 'Ya existe otro control con ese nombre de variable.';
+                    errEl.classList.remove('hidden');
+                    return;
+                }
+                errEl.classList.add('hidden');
+                comp.name = limpio;
+            } else if (prop === 'text') {
+                comp.text = valor;
+            } else if (prop === 'width') {
+                comp.width = Math.max(30, Math.min(600, parseInt(valor) || 60));
+            } else if (prop === 'height') {
+                comp.height = Math.max(20, Math.min(300, parseInt(valor) || 28));
+            } else if (prop === 'bgColor') {
+                comp.bgColor = valor;
+            } else if (prop === 'fgColor') {
+                comp.fgColor = valor;
+            }
+
+            renderizarLienzo();
+            renderizarNavigator();
+            guardarEstadoLocal();
+        }
+
+        function restaurarColorFondo() {
+            const comp = componentes.find(c => c.id === seleccionadoId);
+            if (!comp) return;
+            if (comp.type === 'JLabel') comp.bgColor = 'transparent';
+            else if (comp.type === 'JTextField') comp.bgColor = '#FFFFFF';
+            else if (comp.type === 'JButton') comp.bgColor = '#E2E8F0';
+            renderizarLienzo();
+            actualizarPanelPropiedades();
+            guardarEstadoLocal();
+        }
+
+        function eliminarComponenteSeleccionado() {
+            if (!seleccionadoId) return;
+            componentes = componentes.filter(c => c.id !== seleccionadoId);
+            seleccionarComponente(null);
+            renderizarLienzo();
+            renderizarNavigator();
+            guardarEstadoLocal();
+            actualizarBarraEstado('Componente eliminado del formulario.');
+        }
+
+        // =====================================================================
+        // 4. EDITOR DE CÓDIGO JAVA PARA BOTONES (ActionPerformed)
+        // =====================================================================
+        function abrirEditorBotonSeleccionado() {
+            const comp = componentes.find(c => c.id === seleccionadoId);
+            if (comp && comp.type === 'JButton') {
+                abrirEditorCodigo(comp.id);
+                return;
+            }
+            // Si no hay un botón seleccionado, buscar el primer JButton del formulario
+            const primerBoton = componentes.find(c => c.type === 'JButton');
+            if (primerBoton) {
+                seleccionarComponente(primerBoton.id);
+                abrirEditorCodigo(primerBoton.id);
+            } else {
+                mostrarDialogo('Sin botones en el formulario', 'Primero arrastra o coloca al menos un componente <strong>JButton</strong> en el formulario para poder programar su evento <code>ActionPerformed</code>.', 'warning');
+            }
+        }
+
+        function abrirEditorCodigo(btnId) {
+            const btn = componentes.find(c => c.id === btnId && c.type === 'JButton');
+            if (!btn) return;
+
+            botonEditandoId = btn.id;
+            document.getElementById('editor-btn-label').textContent = `${btn.name} ("${btn.text}")`;
+            document.getElementById('editor-method-name').textContent = `${btn.name}ActionPerformed`;
+            document.getElementById('java-code-area').value = btn.code || '';
+            document.getElementById('editor-diagnostico').classList.add('hidden');
+
+            // Listar nombres de variables de los controles del formulario
+            const varsContainer = document.getElementById('editor-lista-variables');
+            varsContainer.innerHTML = componentes.map(c =>
+                `<span class="bg-white border border-slate-300 px-2 py-0.5 rounded font-mono text-[11px] text-slate-800" title="${c.type}">${c.name} <span class="text-slate-400">(${c.type})</span></span>`
+            ).join('');
+
+            const modal = document.getElementById('modal-editor-codigo');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => document.getElementById('java-code-area').focus(), 50);
+        }
+
+        function cerrarEditorCodigo() {
+            const modal = document.getElementById('modal-editor-codigo');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            botonEditandoId = null;
+        }
+
+        function borrarCodigoEditor() {
+            document.getElementById('java-code-area').value = '';
+            document.getElementById('editor-diagnostico').classList.add('hidden');
+        }
+
+        function verificarSintaxisEditor() {
+            const codigo = document.getElementById('java-code-area').value;
+            const diag = document.getElementById('editor-diagnostico');
+            const resultado = analizarSintaxisJavaSwing(codigo, componentes.map(c => c.name));
+
+            diag.classList.remove('hidden', 'bg-emerald-50', 'border-emerald-300', 'text-emerald-900', 'bg-rose-50', 'border-rose-300', 'text-rose-900');
+
+            if (resultado.errores.length === 0) {
+                diag.classList.add('bg-emerald-50', 'border-emerald-300', 'text-emerald-900');
+                diag.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 mr-1"></i> <strong>Sintaxis válida:</strong> No se detectaron errores básicos de escritura. ¡Guarda la programación y ejecuta el formulario!`;
+            } else {
+                diag.classList.add('bg-rose-50', 'border-rose-300', 'text-rose-900');
+                diag.innerHTML = `
+                    <p class="font-bold mb-1"><i class="fa-solid fa-triangle-exclamation text-rose-600 mr-1"></i> Observaciones detectadas en tu código:</p>
+                    <ul class="list-disc pl-5 space-y-0.5">${resultado.errores.map(e => `<li>${e}</li>`).join('')}</ul>
+                `;
+            }
+        }
+
+        function guardarCodigoBoton() {
+            const btn = componentes.find(c => c.id === botonEditandoId);
+            if (!btn) return;
+
+            const codigo = document.getElementById('java-code-area').value;
+            const check = analizarSintaxisJavaSwing(codigo, componentes.map(c => c.name));
+
+            if (check.errores.length > 0) {
+                verificarSintaxisEditor();
+                return;
+            }
+
+            btn.code = codigo;
+            guardarEstadoLocal();
+            renderizarLienzo();
+            actualizarPanelPropiedades();
+            cerrarEditorCodigo();
+            actualizarBarraEstado(`Programación guardada en ${btn.name}ActionPerformed().`);
+        }
+
+        // =====================================================================
+        // 5. ANALIZADOR E INTÉRPRETE EDUCATIVO DE INSTRUCCIONES JAVA SWING
+        // =====================================================================
+        function analizarSintaxisJavaSwing(code, nombresControles) {
+            const errores = [];
+            const lines = code.split('\n').map(l => l.trim()).filter(l => l !== '' && !l.startsWith('//'));
+
+            if (lines.length === 0) {
+                errores.push('El bloque del botón está vacío. Escribe al menos una instrucción Java.');
+                return { errores };
+            }
+
+            lines.forEach((line, idx) => {
+                // Verificar punto y coma al final
+                if (!line.endsWith(';')) {
+                    errores.push(`Línea ${idx + 1}: Falta el punto y coma (<code>;</code>) al final de <code>${escaparHTML(line)}</code>.`);
+                }
+
+                // Verificar paréntesis balanceados
+                const openP = (line.match(/\(/g) || []).length;
+                const closeP = (line.match(/\)/g) || []).length;
+                if (openP !== closeP) {
+                    errores.push(`Línea ${idx + 1}: Paréntesis desbalanceados en <code>${escaparHTML(line)}</code>.`);
+                }
+
+                // Verificar comillas balanceadas
+                const quotes = (line.match(/"/g) || []).length;
+                if (quotes % 2 !== 0) {
+                    errores.push(`Línea ${idx + 1}: Comillas dobles (<code>"</code>) sin cerrar en <code>${escaparHTML(line)}</code>.`);
+                }
+
+                // Detectar errores típicos de mayúsculas/minúsculas en métodos Swing
+                if (/\.settext\s*\(/i.test(line) && !/\.setText\s*\(/.test(line)) {
+                    errores.push(`Línea ${idx + 1}: En Java se escribe <code>setText(...)</code> con T mayúscula.`);
+                }
+                if (/\.gettext\s*\(/i.test(line) && !/\.getText\s*\(/.test(line)) {
+                    errores.push(`Línea ${idx + 1}: En Java se escribe <code>getText()</code> con T mayúscula.`);
+                }
+                if (/\.requestfocus\s*\(/i.test(line) && !/\.requestFocus\s*\(/.test(line)) {
+                    errores.push(`Línea ${idx + 1}: En Java se escribe <code>requestFocus()</code> con F mayúscula.`);
+                }
+                if (/integer\.parseint/i.test(line) && !/Integer\.parseInt/.test(line)) {
+                    errores.push(`Línea ${idx + 1}: En Java se escribe <code>Integer.parseInt(...)</code> respetando mayúsculas.`);
+                }
+
+                // Verificar si hace referencia a un componente inexistente (ej. comp.setText o comp.getText)
+                const refs = [...line.matchAll(/(?:this\.)?([a-zA-Z_$][a-zA-Z0-9_$]*)\.(?:setText|getText|requestFocus)\s*\(/g)];
+                refs.forEach(m => {
+                    const varName = m[1];
+                    if (!nombresControles.includes(varName)) {
+                        errores.push(`Línea ${idx + 1}: No existe ningún componente llamado <code>${varName}</code> en tu formulario. Revisa el panel Navigator.`);
+                    }
+                });
+            });
+
+            return { errores };
+        }
+
+        /**
+         * Ejecuta el código Java Swing escrito por el estudiante sobre los controles vivos del formulario.
+         */
+        function ejecutarCodigoJavaEnRuntime(code, runtimeElements, logFn) {
+            const rawLines = code.split('\n')
+                .map(l => l.replace(/\/\/.*$/, '').trim())
+                .filter(l => l !== '');
+
+            // Entorno de variables locales (int, double, float, String)
+            const scope = {};
+
+            // Función auxiliar para evaluar expresiones Java sencillas (concatenación, aritmética, getText, parseInt, parseDouble)
+            function evaluarExpresion(expr) {
+                expr = expr.trim();
+
+                // Reemplazar (this.)campo.getText() por una función interna segura
+                let jsExpr = expr.replace(/(?:this\.)?([a-zA-Z_$][a-zA-Z0-9_$]*)\.getText\s*\(\s*\)/g, (_, name) => {
+                    return `__getText("${name}")`;
+                });
+
+                // Reemplazar Integer.parseInt(...)
+                jsExpr = jsExpr.replace(/Integer\.parseInt\s*\(/g, '__parseInt(');
+
+                // Reemplazar Double.parseDouble(...) y Float.parseFloat(...)
+                jsExpr = jsExpr.replace(/(?:Double\.parseDouble|Float\.parseFloat)\s*\(/g, '__parseDouble(');
+
+                // Reemplazar String.valueOf(...)
+                jsExpr = jsExpr.replace(/String\.valueOf\s*\(/g, 'String(');
+
+                const __getText = (name) => {
+                    const obj = runtimeElements[name];
+                    if (!obj) throw new Error(`Componente no encontrado: ${name}`);
+                    return obj.getValue();
+                };
+
+                const __parseInt = (val) => {
+                    const s = String(val).trim();
+                    if (s === '' || !/^-?\d+$/.test(s)) {
+                        throw new Error(`NumberFormatException: El valor "${s}" no es un número entero válido (campo vacío o con letras).`);
+                    }
+                    return parseInt(s, 10);
+                };
+
+                const __parseDouble = (val) => {
+                    const s = String(val).trim().replace(',', '.');
+                    if (s === '' || isNaN(Number(s))) {
+                        throw new Error(`NumberFormatException: El valor "${s}" no es un número válido (campo vacío o inválido).`);
+                    }
+                    return parseFloat(s);
+                };
+
+                // Construir evaluador con las variables locales declaradas en scope
+                const varNames = Object.keys(scope);
+                const varValues = Object.values(scope);
+
+                try {
+                    const fn = new Function('__getText', '__parseInt', '__parseDouble', ...varNames, `return (${jsExpr});`);
+                    return fn(__getText, __parseInt, __parseDouble, ...varValues);
+                } catch (err) {
+                    throw new Error(err.message || `No se pudo evaluar la expresión: ${expr}`);
+                }
+            }
+
+            // Ejecutar instrucción por instrucción
+            for (let i = 0; i < rawLines.length; i++) {
+                let stmt = rawLines[i];
+                if (!stmt.endsWith(';')) {
+                    throw new Error(`Error de sintaxis en línea ${i + 1}: Falta ';' al final.`);
+                }
+                stmt = stmt.slice(0, -1).trim();
+
+                // 1. Declaración de variables: int a, b, c; o double n1 = ...; o String x = ...;
+                const declMatch = stmt.match(/^(int|double|float|String)\s+(.+)$/);
+                if (declMatch) {
+                    const tipoDato = declMatch[1];
+                    const resto = declMatch[2];
+                    // Separar por comas fuera de paréntesis
+                    const partes = dividirPorComasSeguras(resto);
+                    partes.forEach(p => {
+                        const eqIdx = p.indexOf('=');
+                        if (eqIdx !== -1) {
+                            const vName = p.slice(0, eqIdx).trim();
+                            const vExpr = p.slice(eqIdx + 1).trim();
+                            let val = evaluarExpresion(vExpr);
+                            if (tipoDato === 'int') val = Math.trunc(Number(val));
+                            scope[vName] = val;
+                        } else {
+                            const vName = p.trim();
+                            scope[vName] = tipoDato === 'String' ? '' : 0;
+                        }
+                    });
+                    continue;
+                }
+
+                // 2. Llamada a setText: (this.)control.setText(expr)
+                const setTextMatch = stmt.match(/^(?:this\.)?([a-zA-Z_$][a-zA-Z0-9_$]*)\.setText\s*\(([\s\S]+)\)$/);
+                if (setTextMatch) {
+                    const targetName = setTextMatch[1];
+                    const innerExpr = setTextMatch[2];
+                    const target = runtimeElements[targetName];
+                    if (!target) throw new Error(`Componente "${targetName}" no existe en el formulario.`);
+                    const resultado = evaluarExpresion(innerExpr);
+                    target.setValue(resultado);
+                    continue;
+                }
+
+                // 3. Llamada a requestFocus: (this.)control.requestFocus()
+                const focusMatch = stmt.match(/^(?:this\.)?([a-zA-Z_$][a-zA-Z0-9_$]*)\.requestFocus\s*\(\s*\)$/);
+                if (focusMatch) {
+                    const targetName = focusMatch[1];
+                    const target = runtimeElements[targetName];
+                    if (!target) throw new Error(`Componente "${targetName}" no existe en el formulario.`);
+                    target.focus();
+                    continue;
+                }
+
+                // 4. Asignación a variable existente: su = pv + sv;
+                const assignMatch = stmt.match(/^([a-zA-Z_$][a-zA-Z0-9_$]*)\s*=\s*(.+)$/);
+                if (assignMatch) {
+                    const vName = assignMatch[1];
+                    const vExpr = assignMatch[2];
+                    if (!(vName in scope)) {
+                        throw new Error(`Variable "${vName}" no declarada. Declárala antes con int o double.`);
+                    }
+                    scope[vName] = evaluarExpresion(vExpr);
+                    continue;
+                }
+
+                throw new Error(`Instrucción no reconocida en línea ${i + 1}: "${stmt};"`);
+            }
+        }
+
+        function dividirPorComasSeguras(str) {
+            const res = [];
+            let depth = 0;
+            let current = '';
+            for (let ch of str) {
+                if (ch === '(') depth++;
+                if (ch === ')') depth--;
+                if (ch === ',' && depth === 0) {
+                    res.push(current);
+                    current = '';
+                } else {
+                    current += ch;
+                }
+            }
+            if (current.trim() !== '') res.push(current);
+            return res;
+        }
+
+        // =====================================================================
+        // 6. EJECUTAR FORMULARIO (VISTA RUNTIME INTERACTIVA)
+        // =====================================================================
+        let runtimeElementsMap = {};
+
+        function ejecutarFormulario() {
+            if (componentes.length === 0) {
+                mostrarDialogo(
+                    'Formulario vacío',
+                    'Aún no has agregado ningún componente al formulario.<br><br>Arrastra etiquetas (<strong>JLabel</strong>), campos de texto (<strong>JTextField</strong>) y botones (<strong>JButton</strong>) desde la Paleta hacia el área de diseño antes de ejecutar.',
+                    'warning'
+                );
+                return;
+            }
+
+            const runtimeCanvas = document.getElementById('runtime-canvas');
+            runtimeCanvas.innerHTML = '';
+            runtimeElementsMap = {};
+
+            // Calcular altura mínima necesaria según los componentes colocados
+            const maxY = componentes.reduce((max, c) => Math.max(max, c.y + c.height + 40), 380);
+            runtimeCanvas.style.height = maxY + 'px';
+
+            componentes.forEach(comp => {
+                let domEl;
+
+                if (comp.type === 'JLabel') {
+                    domEl = document.createElement('div');
+                    domEl.className = 'swing-jlabel flex items-center';
+                    domEl.textContent = comp.text;
+                    if (comp.bgColor && comp.bgColor !== 'transparent') {
+                        domEl.style.backgroundColor = comp.bgColor;
+                    }
+                    runtimeElementsMap[comp.name] = {
+                        type: 'JLabel',
+                        getValue: () => domEl.textContent,
+                        setValue: (v) => { domEl.textContent = String(v); },
+                        focus: () => {}
+                    };
+                } else if (comp.type === 'JTextField') {
+                    domEl = document.createElement('input');
+                    domEl.type = 'text';
+                    domEl.className = 'swing-jtextfield focus:outline-none focus:ring-2 focus:ring-blue-500';
+                    domEl.value = comp.text;
+                    domEl.style.backgroundColor = comp.bgColor || '#FFFFFF';
+                    runtimeElementsMap[comp.name] = {
+                        type: 'JTextField',
+                        getValue: () => domEl.value,
+                        setValue: (v) => { domEl.value = String(v); },
+                        focus: () => { domEl.focus(); }
+                    };
+                } else if (comp.type === 'JButton') {
+                    domEl = document.createElement('button');
+                    domEl.type = 'button';
+                    domEl.className = 'swing-jbutton flex items-center justify-center cursor-pointer';
+                    domEl.textContent = comp.text || 'Button';
+                    if (comp.bgColor && comp.bgColor !== '#E2E8F0') {
+                        domEl.style.background = comp.bgColor;
+                    }
+
+                    domEl.addEventListener('click', () => {
+                        if (!comp.code || comp.code.trim() === '') {
+                            agregarLogRuntime(`⚠️ El botón "${comp.name}" (${comp.text}) todavía no tiene código programado en su evento ActionPerformed. Regresa al diseñador y haz doble clic sobre él.`, 'text-amber-400');
+                            return;
+                        }
+                        try {
+                            ejecutarCodigoJavaEnRuntime(comp.code, runtimeElementsMap, agregarLogRuntime);
+                            agregarLogRuntime(`✓ Evento ${comp.name}ActionPerformed() ejecutado correctamente.`, 'text-emerald-400');
+                        } catch (err) {
+                            agregarLogRuntime(`❌ Error en ${comp.name}: ${err.message}`, 'text-rose-400');
+                        }
+                    });
+
+                    runtimeElementsMap[comp.name] = {
+                        type: 'JButton',
+                        getValue: () => domEl.textContent,
+                        setValue: (v) => { domEl.textContent = String(v); },
+                        focus: () => domEl.focus()
+                    };
+                }
+
+                domEl.style.position = 'absolute';
+                domEl.style.left = comp.x + 'px';
+                domEl.style.top = comp.y + 'px';
+                domEl.style.width = comp.width + 'px';
+                domEl.style.height = comp.height + 'px';
+                domEl.style.color = comp.fgColor;
+
+                runtimeCanvas.appendChild(domEl);
+            });
+
+            limpiarConsolaRuntime();
+            const sinProgramar = componentes.filter(c => c.type === 'JButton' && (!c.code || c.code.trim() === ''));
+            if (sinProgramar.length > 0) {
+                agregarLogRuntime(`Aviso: Hay ${sinProgramar.length} botón(es) sin programar (${sinProgramar.map(b => b.name).join(', ')}).`, 'text-amber-300');
+            }
+
+            const modal = document.getElementById('modal-ejecucion');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function cerrarEjecucion() {
+            const modal = document.getElementById('modal-ejecucion');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function agregarLogRuntime(msg, colorClass = 'text-slate-200') {
+            const consoleEl = document.getElementById('runtime-console');
+            const line = document.createElement('div');
+            line.className = colorClass;
+            line.textContent = msg;
+            consoleEl.appendChild(line);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        function limpiarConsolaRuntime() {
+            document.getElementById('runtime-console').innerHTML = '<div class="text-emerald-400">run: Formulario JFrame ejecutándose.</div>';
+        }
+
+        // =====================================================================
+        // 7. GESTIÓN DE RETOS PRÁCTICOS Y VALIDACIÓN PEDAGÓGICA
+        // =====================================================================
+        const INFO_RETOS = {
+            0: {
+                titulo: 'MODO LIBRE',
+                instruccion: 'Arrastra componentes desde la Paleta al lienzo (o tócalos en celular y luego toca el lienzo). Haz doble clic en un JButton para programarlo.',
+                ayuda: ''
+            },
+            1: {
+                titulo: 'RETO 1: MENSAJE PERSONALIZADO',
+                instruccion: 'Agrega: 1 JLabel de instrucción, 1 JTextField para el nombre, 1 JLabel para el resultado, 1 JButton MOSTRAR y 1 JButton LIMPIAR. Programa ambos botones.',
+                ayuda: `
+                    <p><strong>Estructura sugerida para el Reto 1:</strong></p>
+                    <ul class="list-disc pl-5 space-y-1 text-xs mt-1">
+                        <li>Crea un <code>JTextField</code> (por ejemplo llamado <code>com</code> o <code>txtNombre</code>).</li>
+                        <li>Crea un <code>JLabel</code> vacío para el resultado (por ejemplo <code>pre</code> o <code>lblResultado</code>).</li>
+                        <li>En el botón <strong>MOSTRAR</strong> escribe:<br><code class="bg-slate-100 px-1.5 py-0.5 rounded block mt-0.5">pre.setText("La moto se la ganó " + com.getText());</code></li>
+                        <li>En el botón <strong>LIMPIAR</strong> escribe:<br><code class="bg-slate-100 px-1.5 py-0.5 rounded block mt-0.5">com.setText("");<br>pre.setText("");<br>com.requestFocus();</code></li>
+                    </ul>
+                `
+            },
+            2: {
+                titulo: 'RETO 2: SUMA DE DOS NÚMEROS',
+                instruccion: 'Diseña etiquetas y campos para PRIMER VALOR, SEGUNDO VALOR y RESULTADO, más los botones CALCULAR y LIMPIAR usando Integer.parseInt(), getText(), setText() y requestFocus().',
+                ayuda: `
+                    <p><strong>Guía paso a paso para el Reto 2:</strong></p>
+                    <ul class="list-disc pl-5 space-y-1 text-xs mt-1">
+                        <li>Nombra tus tres <code>JTextField</code> como <code>pv</code>, <code>sv</code> y <code>su</code> (o <code>txt1</code>, <code>txt2</code>, <code>txtRes</code>).</li>
+                        <li>En el botón <strong>CALCULAR</strong> programa:<br>
+                            <code class="bg-slate-100 px-1.5 py-1 rounded block mt-0.5">int pv, sv, su;<br>pv = Integer.parseInt(this.pv.getText());<br>sv = Integer.parseInt(this.sv.getText());<br>su = pv + sv;<br>this.su.setText(su + "");</code>
+                        </li>
+                        <li>En el botón <strong>LIMPIAR</strong> borra los 3 campos con <code>setText("")</code> y enfoca el primero con <code>requestFocus()</code>.</li>
+                    </ul>
+                `
+            },
+            3: {
+                titulo: 'RETO 3: SUMA Y PROMEDIO DE NOTAS',
+                instruccion: 'Crea un formulario con 3 campos para notas parciales, 2 campos para suma y promedio, y los botones CALCULAR y LIMPIAR.',
+                ayuda: `
+                    <p><strong>Guía paso a paso para el Reto 3:</strong></p>
+                    <ul class="list-disc pl-5 space-y-1 text-xs mt-1">
+                        <li>Agrega 5 <code>JTextField</code>: tres para las notas (ej. <code>n1</code>, <code>n2</code>, <code>n3</code>), uno para la suma (<code>suma</code>) y otro para el promedio (<code>prom</code>).</li>
+                        <li>En <strong>CALCULAR</strong> convierte las notas con <code>Double.parseDouble(...)</code>, súmalas, divide la suma entre <code>3</code> y muestra ambos resultados con <code>setText(...)</code>.</li>
+                        <li>En <strong>LIMPIAR</strong> vacía los 5 campos y usa <code>n1.requestFocus();</code>.</li>
+                    </ul>
+                `
+            }
+        };
+
+        function abrirModalRetos() {
+            actualizarBadgesRetos();
+            const modal = document.getElementById('modal-retos');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function cerrarModalRetos() {
+            const modal = document.getElementById('modal-retos');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function seleccionarReto(num) {
+            retoActual = num;
+            cerrarModalRetos();
+            actualizarBannerReto();
+            guardarEstadoLocal();
+
+            if (num > 0 && componentes.length > 0) {
+                mostrarDialogo(
+                    `Has activado el Reto ${num}`,
+                    '¿Deseas limpiar el lienzo actual para empezar a construir el formulario de este reto desde cero?',
+                    'info',
+                    [
+                        { texto: 'Conservar diseño actual', clase: 'bg-slate-200 text-slate-800', accion: cerrarDialogo },
+                        { texto: 'Limpiar lienzo', clase: 'bg-blue-600 text-white', accion: () => { limpiarLienzoSinConfirmar(); cerrarDialogo(); } }
+                    ]
+                );
+            }
+        }
+
+        function actualizarBannerReto() {
+            const info = INFO_RETOS[retoActual] || INFO_RETOS[0];
+            document.getElementById('banner-titulo-modo').textContent = info.titulo;
+            document.getElementById('banner-instruccion').textContent = info.instruccion;
+            document.getElementById('badge-reto-activo').textContent = retoActual === 0 ? 'Libre' : `Reto ${retoActual}`;
+
+            const btnAyuda = document.getElementById('btn-ver-ayuda-reto');
+            const btnVerificar = document.getElementById('btn-verificar-reto');
+
+            if (retoActual > 0) {
+                btnAyuda.classList.remove('hidden');
+                btnVerificar.classList.remove('hidden');
+            } else {
+                btnAyuda.classList.add('hidden');
+                btnVerificar.classList.add('hidden');
+            }
+        }
+
+        function mostrarAyudaReto() {
+            if (retoActual === 0) return;
+            const info = INFO_RETOS[retoActual];
+            mostrarDialogo(`Ayuda — ${info.titulo}`, info.ayuda, 'info');
+        }
+
+        function validarRetoActual() {
+            if (retoActual === 0) return;
+
+            const labels = componentes.filter(c => c.type === 'JLabel');
+            const fields = componentes.filter(c => c.type === 'JTextField');
+            const buttons = componentes.filter(c => c.type === 'JButton');
+
+            if (componentes.length === 0) {
+                mostrarDialogo('Formulario vacío', 'Aún no has agregado componentes al formulario. Arrastra los controles desde la Paleta.', 'warning');
+                return;
+            }
+
+            // Verificar si hay nombres genéricos sin personalizar (opcional pero orientador)
+            const sinProgramar = buttons.filter(b => !b.code || b.code.trim() === '');
+            if (sinProgramar.length > 0) {
+                mostrarDialogo(
+                    'Faltan botones por programar',
+                    `Tienes ${sinProgramar.length} botón(es) sin código Java: <strong>${sinProgramar.map(b => b.name).join(', ')}</strong>.<br><br>Haz doble clic sobre cada botón en el diseñador para escribir su evento <code>ActionPerformed</code>.`,
+                    'warning'
+                );
+                return;
+            }
+
+            const todoElCodigo = buttons.map(b => b.code).join('\n');
+
+            if (retoActual === 1) {
+                if (labels.length < 2 || fields.length < 1 || buttons.length < 2) {
+                    mostrarDialogo('Componentes incompletos (Reto 1)', 'Para el Reto 1 necesitas al menos: <strong>2 etiquetas (JLabel)</strong>, <strong>1 campo de texto (JTextField)</strong> y <strong>2 botones (MOSTRAR y LIMPIAR)</strong>.', 'warning');
+                    return;
+                }
+                if (!/\.getText\s*\(/.test(todoElCodigo) || !/\.setText\s*\(/.test(todoElCodigo) || !/\.requestFocus\s*\(/.test(todoElCodigo)) {
+                    mostrarDialogo('Revisa los métodos Java (Reto 1)', 'Asegúrate de utilizar <code>getText()</code> para leer el nombre, <code>setText()</code> para mostrar el mensaje y limpiar, y <code>requestFocus()</code> para devolver el cursor al campo.', 'warning');
+                    return;
+                }
+                retosCompletados[1] = true;
+            } else if (retoActual === 2) {
+                if (labels.length < 3 || fields.length < 3 || buttons.length < 2) {
+                    mostrarDialogo('Componentes incompletos (Reto 2)', 'Para el Reto 2 necesitas al menos: <strong>3 etiquetas</strong> (PRIMER VALOR, SEGUNDO VALOR, RESULTADO), <strong>3 campos de texto (JTextField)</strong> y <strong>2 botones</strong> (CALCULAR y LIMPIAR).', 'warning');
+                    return;
+                }
+                if (!/Integer\.parseInt\s*\(/.test(todoElCodigo) || !/\.getText\s*\(/.test(todoElCodigo) || !/\.setText\s*\(/.test(todoElCodigo) || !/\.requestFocus\s*\(/.test(todoElCodigo)) {
+                    mostrarDialogo('Faltan instrucciones requeridas (Reto 2)', 'En este reto debes utilizar obligatoriamente:<br>• <code>getText()</code><br>• <code>Integer.parseInt()</code><br>• <code>setText()</code><br>• <code>requestFocus()</code>', 'warning');
+                    return;
+                }
+                retosCompletados[2] = true;
+            } else if (retoActual === 3) {
+                if (fields.length < 5 || buttons.length < 2) {
+                    mostrarDialogo('Componentes incompletos (Reto 3)', 'Para el Reto 3 necesitas <strong>5 campos de texto (JTextField)</strong> (tres notas parciales, suma y promedio) y <strong>2 botones</strong> (CALCULAR y LIMPIAR).', 'warning');
+                    return;
+                }
+                if (!/(Double\.parseDouble|Integer\.parseInt|Float\.parseFloat)\s*\(/.test(todoElCodigo) || !/\/\s*3/.test(todoElCodigo) || !/\.setText\s*\(/.test(todoElCodigo)) {
+                    mostrarDialogo('Revisa la lógica del promedio (Reto 3)', 'Verifica que estés convirtiendo las tres notas ingresadas, sumándolas, dividiendo entre <code>3</code> para obtener el promedio y mostrando ambos resultados con <code>setText()</code>.', 'warning');
+                    return;
+                }
+                retosCompletados[3] = true;
+            }
+
+            actualizarBadgesRetos();
+            guardarEstadoLocal();
+            mostrarDialogo(
+                `¡Reto ${retoActual} Superado con Éxito!`,
+                'Tu diseño y programación cumplen con todos los requisitos. Presiona <strong>EJECUTAR FORMULARIO</strong> para probarlo en vivo con datos reales.',
+                'success'
+            );
+        }
+
+        function actualizarBadgesRetos() {
+            for (let i = 1; i <= 3; i++) {
+                const el = document.getElementById(`status-reto-${i}`);
+                if (!el) continue;
+                if (retosCompletados[i]) {
+                    el.textContent = '✓ Completado';
+                    el.className = 'text-[11px] font-bold text-emerald-600';
+                } else {
+                    el.textContent = 'Pendiente';
+                    el.className = 'text-[11px] font-bold text-slate-400';
+                }
+            }
+        }
+
+        // =====================================================================
+        // 8. UTILIDADES DE INTERFAZ, DIÁLOGOS Y REINICIO
+        // =====================================================================
+        function actualizarBarraEstado(texto) {
+            document.getElementById('status-bar-msg').innerHTML = `<i class="fa-solid fa-circle-info text-blue-600"></i> <span>${texto}</span>`;
+        }
+
+        function escaparHTML(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function mostrarDialogo(titulo, htmlMensaje, tipo = 'info', botonesPersonalizados = null) {
+            const modal = document.getElementById('modal-dialogo');
+            const iconBox = document.getElementById('dialogo-icon');
+            const titleEl = document.getElementById('dialogo-titulo');
+            const msgEl = document.getElementById('dialogo-mensaje');
+            const btnsEl = document.getElementById('dialogo-botones');
+
+            titleEl.textContent = titulo;
+            msgEl.innerHTML = htmlMensaje;
+
+            if (tipo === 'warning') {
+                iconBox.className = 'w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0 text-lg';
+                iconBox.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+            } else if (tipo === 'success') {
+                iconBox.className = 'w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0 text-lg';
+                iconBox.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+            } else {
+                iconBox.className = 'w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0 text-lg';
+                iconBox.innerHTML = '<i class="fa-solid fa-circle-info"></i>';
+            }
+
+            btnsEl.innerHTML = '';
+            if (botonesPersonalizados) {
+                botonesPersonalizados.forEach(b => {
+                    const btn = document.createElement('button');
+                    btn.className = `px-4 py-2 rounded-lg text-xs font-bold transition ${b.clase}`;
+                    btn.textContent = b.texto;
+                    btn.onclick = b.accion;
+                    btnsEl.appendChild(btn);
+                });
+            } else {
+                const okBtn = document.createElement('button');
+                okBtn.className = 'px-4 py-2 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition';
+                okBtn.textContent = 'Entendido';
+                okBtn.onclick = cerrarDialogo;
+                btnsEl.appendChild(okBtn);
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function cerrarDialogo() {
+            const modal = document.getElementById('modal-dialogo');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function limpiarLienzoSinConfirmar() {
+            componentes = [];
+            seleccionadoId = null;
+            contadoresTipo = { JLabel: 0, JTextField: 0, JButton: 0 };
+            renderizarLienzo();
+            renderizarNavigator();
+            actualizarPanelPropiedades();
+            guardarEstadoLocal();
+        }
+
+        function confirmarNuevoFormulario() {
+            mostrarDialogo(
+                '¿Crear nuevo formulario en blanco?',
+                'Se eliminarán todos los componentes y el código del formulario actual para iniciar un diseño nuevo.',
+                'warning',
+                [
+                    { texto: 'Cancelar', clase: 'bg-slate-200 text-slate-800', accion: cerrarDialogo },
+                    { texto: 'Sí, nuevo formulario', clase: 'bg-blue-600 text-white', accion: () => { limpiarLienzoSinConfirmar(); cerrarDialogo(); actualizarBarraEstado('Nuevo formulario JFrame creado.'); } }
+                ]
+            );
+        }
+
+        function confirmarReinicioCompleto() {
+            mostrarDialogo(
+                '¿Reiniciar todo el simulador?',
+                'Se borrarán el diseño actual, el código programado y el progreso registrado en los retos.',
+                'warning',
+                [
+                    { texto: 'Cancelar', clase: 'bg-slate-200 text-slate-800', accion: cerrarDialogo },
+                    { texto: 'Reiniciar Todo', clase: 'bg-rose-600 text-white', accion: () => {
+                        retoActual = 0;
+                        retosCompletados = { 1: false, 2: false, 3: false };
+                        limpiarLienzoSinConfirmar();
+                        actualizarBannerReto();
+                        actualizarBadgesRetos();
+                        localStorage.removeItem(STORAGE_KEY);
+                        cerrarDialogo();
+                        actualizarBarraEstado('Simulador reiniciado por completo.');
+                    }}
+                ]
+            );
+        }
+
+        // =====================================================================
+        // 9. TUTORIAL INTERACTIVO PASO A PASO (NO INVASIVO)
+        // =====================================================================
+        const PASOS_TUTORIAL = [
+            {
+                targetId: 'panel-paleta-tour',
+                titulo: '1. Paleta de Componentes Swing',
+                contenido: 'Aquí tienes los controles básicos de Java Swing: <strong>JLabel</strong> (etiqueta), <strong>JTextField</strong> (campo de texto) y <strong>JButton</strong> (botón).<br><br>• En <strong>computadora</strong>: arrástralos hacia el formulario.<br>• En <strong>celular</strong>: tócalos y luego toca el formulario.'
+            },
+            {
+                targetId: 'panel-disenador-tour',
+                titulo: '2. Área de Diseño (JFrame)',
+                contenido: 'Este lienzo representa tu ventana <strong>JFrame</strong> de NetBeans 8.2. Puedes mover libremente cualquier componente, cambiar su tamaño desde su esquina inferior derecha y hacer <strong>doble clic sobre un JButton</strong> para escribir su código Java.'
+            },
+            {
+                targetId: 'panel-propiedades-tour',
+                titulo: '3. Panel de Propiedades (Properties)',
+                contenido: 'Al hacer clic en un componente, aquí configuras su <strong>Nombre de variable (name)</strong> (por ejemplo: <code>txtNombre</code>, <code>com</code>, <code>pre</code>), su texto visible, tamaño y colores. ¡Recuerda usar el mismo nombre de variable dentro de tu código!'
+            },
+            {
+                targetId: 'panel-disenador-tour',
+                titulo: '4. Programación de Eventos (ActionPerformed)',
+                contenido: 'Cuando hagas <strong>doble clic en un botón</strong> (o pulses el botón <em>Source</em>), se abrirá el editor Java para programar su evento <code>ActionPerformed</code> usando <code>getText()</code>, <code>setText()</code>, <code>requestFocus()</code> e <code>Integer.parseInt()</code>.'
+            },
+            {
+                targetId: 'btn-ejecutar-header',
+                titulo: '5. Ejecutar Formulario (Run File)',
+                contenido: 'Una vez diseñado y programado tu formulario, presiona <strong>EJECUTAR FORMULARIO</strong>. Se abrirá una ventana en vivo donde tus botones ejecutarán realmente las instrucciones Java que escribiste.'
+            },
+            {
+                targetId: 'btn-retos-header',
+                titulo: '6. Retos Prácticos Guiados',
+                contenido: 'Haz clic en <strong>Retos Prácticos</strong> para resolver los 3 desafíos de clase (Mensaje Personalizado, Suma de Dos Números y Promedio de Notas). Tu trabajo actual nunca se perderá al usar este tutorial.'
+            }
+        ];
+
+        let pasoTutorialActual = 0;
+
+        function iniciarTutorial() {
+            pasoTutorialActual = 0;
+            const overlay = document.getElementById('tour-overlay');
+            overlay.classList.remove('hidden');
+            renderizarPasoTutorial();
+        }
+
+        function cerrarTutorial() {
+            document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
+            document.getElementById('tour-overlay').classList.add('hidden');
+        }
+
+        function cambiarPasoTutorial(delta) {
+            const nuevoPaso = pasoTutorialActual + delta;
+            if (nuevoPaso < 0) return;
+            if (nuevoPaso >= PASOS_TUTORIAL.length) {
+                cerrarTutorial();
+                actualizarBarraEstado('Tutorial completado. ¡Ya puedes diseñar y programar tu formulario!');
+                return;
+            }
+            pasoTutorialActual = nuevoPaso;
+            renderizarPasoTutorial();
+        }
+
+        function renderizarPasoTutorial() {
+            // Quitar resaltado previo
+            document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
+
+            const paso = PASOS_TUTORIAL[pasoTutorialActual];
+            const target = document.getElementById(paso.targetId);
+            if (target) {
+                target.classList.add('tour-highlight');
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            document.getElementById('tour-step-badge').textContent = `Paso ${pasoTutorialActual + 1} de ${PASOS_TUTORIAL.length}`;
+            document.getElementById('tour-title').textContent = paso.titulo;
+            document.getElementById('tour-body').innerHTML = paso.contenido;
+
+            const prevBtn = document.getElementById('tour-prev-btn');
+            const nextBtn = document.getElementById('tour-next-btn');
+
+            prevBtn.style.visibility = pasoTutorialActual === 0 ? 'hidden' : 'visible';
+            if (pasoTutorialActual === PASOS_TUTORIAL.length - 1) {
+                nextBtn.innerHTML = '¡Entendido, empezar! <i class="fa-solid fa-check ml-1"></i>';
+            } else {
+                nextBtn.innerHTML = 'Siguiente <i class="fa-solid fa-arrow-right ml-1"></i>';
+            }
+        }
+    </script>
+</body>
+</html>
